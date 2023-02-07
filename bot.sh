@@ -33,6 +33,9 @@ if [ ! -f domains-prior.csv ]; then
     exit 1
 fi
 
+# Run the file-pruning function
+prune_file
+
 # See if the file is any different than the prior one
 CURRENT_HASH=$(md5sum domains.csv |cut -d " " -f 1)
 PRIOR_HASH=$(md5sum domains-prior.csv |cut -d " " -f 1)
@@ -42,9 +45,6 @@ if [ "$CURRENT_HASH" = "$PRIOR_HASH" ]; then
     rm -f domains.csv
     exit 1
 fi
-
-# Run the file-pruning function
-prune_file
 
 # Create a new list of new domain names
 DOMAIN_LIST=$(diff domains-prior.csv domains.csv |grep ">" |cut -d " " -f 2 |tr '[:upper:]' '[:lower:]')
