@@ -34,8 +34,8 @@ if [ ! -f domains-prior.csv ]; then
 fi
 
 # See if the file is any different than the prior one
-CURRENT_HASH=$(md5 -q domains.csv)
-PRIOR_HASH=$(md5 -q domains-prior.csv)
+CURRENT_HASH=$(md5sum domains.csv |cut -d " " -f 1)
+PRIOR_HASH=$(md5sum domains-prior.csv |cut -d " " -f 1)
 
 if [ "$CURRENT_HASH" = "$PRIOR_HASH" ]; then
     echo "File has not changed"
