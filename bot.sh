@@ -18,7 +18,7 @@ function prune_file {
 # Move into the directory where this script is found
 cd "$(dirname "$0")" || exit
 
-# Retrieve domain list from GitHub 
+# Retrieve domain list from GitHub
 curl --silent -o domains.csv https://raw.githubusercontent.com/cisagov/dotgov-data/main/current-full.csv
 RESULT=$?
 if [ "$RESULT" -ne 0 ]; then
