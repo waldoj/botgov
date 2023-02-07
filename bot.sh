@@ -56,7 +56,7 @@ DOMAIN_LIST=$(diff domains-prior.csv domains.csv |grep ">" |cut -d " " -f 2 |tr 
 POST_TEXT="The following .gov domains have been registered in the past 24 hours: $DOMAIN_LIST"
 
 # Send the message to Mastodon
-curl "$MASTODON_SERVER"/api/v1/statuses -H "Authorization: Bearer ${MASTODON_TOKEN}" -F "status=\"${POST_TEXT}\""
+curl "$MASTODON_SERVER"/api/v1/statuses -H "Authorization: Bearer ${MASTODON_TOKEN}" -F "status=${POST_TEXT}"
 
 RESULT=$?
 if [ "$RESULT" -ne 0 ]; then
