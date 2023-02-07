@@ -46,6 +46,9 @@ if [ "$CURRENT_HASH" = "$PRIOR_HASH" ]; then
     exit 1
 fi
 
+# We need to prune again, but I'm not sure why! Without this, each sort is slightly different
+prune_file
+
 # Create a new list of new domain names
 DOMAIN_LIST=$(diff domains-prior.csv domains.csv |grep ">" |cut -d " " -f 2 |tr '[:upper:]' '[:lower:]')
 
