@@ -58,7 +58,8 @@ if [ ${#DOMAIN_LIST} -lt 5 ]; then
 fi
 
 # Turn the list into a post.
-POST_TEXT="The following .gov domains have been registered in the past 24 hours: $DOMAIN_LIST"
+POST_TEXT="The following .gov domains have been registered in the past 24 hours:
+    $DOMAIN_LIST"
 
 # Send the message to Mastodon
 curl "$MASTODON_SERVER"/api/v1/statuses -H "Authorization: Bearer ${MASTODON_TOKEN}" -F "status=${POST_TEXT}"
