@@ -52,6 +52,11 @@ prune_file
 # Create a new list of new domain names
 DOMAIN_LIST=$(diff domains-prior.csv domains.csv |grep ">" |cut -d " " -f 2 |tr '[:upper:]' '[:lower:]')
 
+# If our list is empty, or too brief to be plausible, exit
+if [ ${#DOMAIN_LIST} -lt 5 ]; then
+    exit 0
+fi
+
 # Turn the list into a post.
 POST_TEXT="The following .gov domains have been registered in the past 24 hours: $DOMAIN_LIST"
 
