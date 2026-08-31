@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 
-# URL of your Mastodon server, without a trailing slash
-MASTODON_SERVER="https://botsin.space"
+# Shared library: credentials, logging, the failure path, and Mastodon
+# transport. See lib/botlib/ and the bot-harness docs.
+. "$(dirname "$0")/lib/botlib/core.sh"
+. "$(dirname "$0")/lib/botlib/secrets.sh"
+. "$(dirname "$0")/lib/botlib/mastodon.sh"
 
-# Your Mastodon account's access token
-MASTODON_TOKEN="ABCDefgh123456789x0x0x0x0x0x0x0x0x0x0x0"
+# Move into the directory where this script is found
+cd "$(dirname "$0")" || exit
+
+load_secrets botgov
+require_secrets MASTODON_SERVER MASTODON_TOKEN
 
 # Reduce the raw file to a raw list of sorted domains
 function prune_file {
@@ -14,9 +20,6 @@ function prune_file {
     # Swap files so we just have the sorted list
     mv -f domains-sorted.csv domains.csv
 }
-
-# Move into the directory where this script is found
-cd "$(dirname "$0")" || exit
 
 # Retrieve domain list from GitHub
 curl --silent -o domains.csv https://raw.githubusercontent.com/cisagov/dotgov-data/main/current-full.csv
@@ -61,13 +64,15 @@ fi
 POST_TEXT="The following .gov domains have been registered in the past 24 hours:
 $DOMAIN_LIST"
 
-# Send the message to Mastodon
-curl "$MASTODON_SERVER"/api/v1/statuses -H "Authorization: Bearer ${MASTODON_TOKEN}" -F "status=${POST_TEXT}"
+# Send the message to Mastodon.
+#
+# This used to call curl directly without -f, which meant a 500 from the server
+# exited 0: the failure branch below never ran, and a failed post was reported
+# as a success. masto_post_status uses -f, so the error is now caught.
+masto_post_status "$POST_TEXT" > /dev/null \
+    || exit_error "Posting message to Mastodon failed"
 
-RESULT=$?
-if [ "$RESULT" -ne 0 ]; then
-    exit_error "Posting message to Mastodon failed"
-fi
+log_info "posted to mastodon domains=$(printf '%s' "$DOMAIN_LIST" | wc -l | tr -d ' ')"
 
 rm -f domains-prior.csv
 mv -f domains.csv domains-prior.csv
