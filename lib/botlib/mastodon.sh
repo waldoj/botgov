@@ -90,17 +90,34 @@ masto_post_status() {
     local text="$1"
     shift
 
+    # The status goes through a file rather than the command line.
+    #
+    # `-F "status=$text"` puts the whole post in an argv entry, and a long one
+    # overflows the kernel's limit: botgov hit "Argument list too long" from a
+    # 12KB post. Mastodon would have rejected that as over-length anyway, but
+    # the library should fail with the server's error rather than an exec
+    # failure -- and a post well under the character limit can still carry
+    # enough multi-byte characters to be a large number of bytes.
+    local body_file
+    body_file=$(mktemp "${TMPDIR:-/tmp}/botlib.status.XXXXXX") || return 1
+    printf '%s' "$text" > "$body_file"
+
     local args=(-s -f -X POST
         -H "Authorization: Bearer ${MASTODON_TOKEN}"
-        -F "status=${text}")
+        -F "status=<${body_file}")
 
     local media_id
     for media_id in "$@"; do
         args+=(-F "media_ids[]=${media_id}")
     done
 
-    local response
-    response=$(curl "${args[@]}" "${MASTODON_SERVER}/api/v1/statuses") || return 1
+    local response status
+    response=$(curl "${args[@]}" "${MASTODON_SERVER}/api/v1/statuses")
+    status=$?
+
+    rm -f "$body_file"
+
+    [ "$status" -eq 0 ] || return 1
 
     printf '%s' "$response"
     return 0

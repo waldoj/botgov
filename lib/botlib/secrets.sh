@@ -71,9 +71,23 @@ load_secrets() {
     # nothing real, and git records only the executable bit -- so a checkout
     # cannot preserve 600 and every clone would otherwise fail here.
     if [ -z "${HARNESS_CAPTURE:-}" ]; then
+        # GNU stat first, then BSD. Deliberately not the other way around: on
+        # Linux `stat -f` is valid but means "filesystem info", so it succeeds
+        # with output that is not a mode at all -- the `||` would never fire
+        # and the arithmetic below would fail on a non-numeric value.
         local mode
-        mode=$(stat -f '%Lp' "$BOT_SECRETS_FILE" 2>/dev/null \
-            || stat -c '%a' "$BOT_SECRETS_FILE" 2>/dev/null) || mode=""
+        mode=$(stat -c '%a' "$BOT_SECRETS_FILE" 2>/dev/null) \
+            || mode=$(stat -f '%Lp' "$BOT_SECRETS_FILE" 2>/dev/null) \
+            || mode=""
+
+        # Only act on something that actually looks like an octal mode. An
+        # unrecognised stat is a reason to skip the check, not to fail: the
+        # permissions may well be fine, and refusing to run would be worse
+        # than not checking.
+        case "$mode" in
+            [0-7][0-7][0-7]|[0-7][0-7][0-7][0-7]) : ;;
+            *) mode="" ;;
+        esac
 
         if [ -n "$mode" ] && [ "$(( 8#$mode & 8#077 ))" -ne 0 ]; then
             exit_error "Secrets file $BOT_SECRETS_FILE is mode $mode; must be 600"

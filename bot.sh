@@ -14,8 +14,13 @@ require_secrets MASTODON_SERVER MASTODON_TOKEN
 
 # Reduce the raw file to a raw list of sorted domains
 function prune_file {
-    # Reduce the file to just the list of domains and sort it
-    sort domains.csv |cut -d "," -f 1 > domains-sorted.csv
+    # Reduce the file to just the list of domains and sort it.
+    #
+    # The header row is dropped rather than sorted along with the data: it was
+    # otherwise posted as though it were a domain, appearing as `"domain` when
+    # the header was quoted and `domain` now that it is not.
+    grep -v '^"\{0,1\}Domain name' domains.csv \
+        | sort | cut -d "," -f 1 > domains-sorted.csv
 
     # Swap files so we just have the sorted list
     mv -f domains-sorted.csv domains.csv
@@ -63,6 +68,23 @@ fi
 # Turn the list into a post.
 POST_TEXT="The following .gov domains have been registered in the past 24 hours:
 $DOMAIN_LIST"
+
+# Refuse to post something implausibly large.
+#
+# Mastodon's limit is 500 characters, and a normal day yields a couple of
+# dozen domains. A list far beyond that means the comparison went wrong rather
+# than that the registry had a busy day -- which is exactly what happened when
+# domains-prior.csv was left as the raw seven-column CSV while domains.csv had
+# been pruned to one column: diff matched almost nothing, and the bot tried to
+# post all 791 domains including ones registered decades ago.
+#
+# Stopping here leaves domains-prior.csv untouched, so the run can be retried
+# once the baseline is fixed.
+MASTODON_MAX_CHARS=500
+
+if [ "${#POST_TEXT}" -gt "$MASTODON_MAX_CHARS" ]; then
+    exit_error "Post is ${#POST_TEXT} characters, over the ${MASTODON_MAX_CHARS} limit ($(printf '%s\n' "$DOMAIN_LIST" | wc -l | tr -d ' ') domains). Check that domains-prior.csv is a pruned single-column list."
+fi
 
 # Send the message to Mastodon.
 #
