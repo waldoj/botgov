@@ -92,7 +92,7 @@ fi
 # exited 0: the failure branch below never ran, and a failed post was reported
 # as a success. masto_post_status uses -f, so the error is now caught.
 masto_post_status "$POST_TEXT" > /dev/null \
-    || exit_error "Posting message to Mastodon failed"
+    || exit_error "Posting message to Mastodon failed: HTTP ${BOTLIB_LAST_STATUS} ${BOTLIB_LAST_BODY}"
 
 log_info "posted to mastodon domains=$(printf '%s' "$DOMAIN_LIST" | wc -l | tr -d ' ')"
 
